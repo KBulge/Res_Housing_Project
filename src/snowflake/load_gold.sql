@@ -1,0 +1,398 @@
+-- ============================================================
+-- GOLD BUILD
+-- ============================================================
+
+CREATE SCHEMA IF NOT EXISTS RES_HOUSING.GOLD;
+
+
+-- ============================================================
+-- DIM_DATE
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS RES_HOUSING.GOLD.DIM_DATE (
+    DATE_KEY INTEGER NOT NULL,
+    DATE DATE NOT NULL,
+    MONTH INTEGER NOT NULL,
+    QUARTER INTEGER NOT NULL,
+    YEAR INTEGER NOT NULL,
+
+    CONSTRAINT PK_DIM_DATE
+        PRIMARY KEY (DATE_KEY)
+);
+
+
+MERGE INTO RES_HOUSING.GOLD.DIM_DATE AS target
+
+USING (
+
+    SELECT DISTINCT
+        TO_NUMBER(TO_CHAR(DATE, 'YYYYMMDD')) AS DATE_KEY,
+        DATE,
+        MONTH(DATE) AS MONTH,
+        QUARTER(DATE) AS QUARTER,
+        YEAR(DATE) AS YEAR
+    FROM (
+        SELECT DATE
+        FROM RES_HOUSING.SILVER.SF_HOUSING_STOCK
+
+        UNION
+
+        SELECT DATE
+        FROM RES_HOUSING.SILVER.SF_PORTFOLIO_STOCK
+
+        UNION
+
+        SELECT DATE
+        FROM RES_HOUSING.SILVER.SF_HOUSING_EVENTS
+    )
+    WHERE DATE IS NOT NULL
+
+) AS source
+
+ON target.DATE_KEY = source.DATE_KEY
+
+WHEN MATCHED THEN
+    UPDATE SET
+        DATE = source.DATE,
+        MONTH = source.MONTH,
+        QUARTER = source.QUARTER,
+        YEAR = source.YEAR
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        DATE_KEY,
+        DATE,
+        MONTH,
+        QUARTER,
+        YEAR
+    )
+    VALUES (
+        source.DATE_KEY,
+        source.DATE,
+        source.MONTH,
+        source.QUARTER,
+        source.YEAR
+    );
+
+
+-- ============================================================
+-- DIM_MARKET
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS RES_HOUSING.GOLD.DIM_MARKET (
+    MARKET_KEY INTEGER NOT NULL,
+    PARCL_ID INTEGER NOT NULL,
+    MARKET_NAME VARCHAR NOT NULL,
+    LOCATION_TYPE VARCHAR NOT NULL,
+
+    CONSTRAINT PK_DIM_MARKET
+        PRIMARY KEY (MARKET_KEY),
+
+    CONSTRAINT UK_DIM_MARKET_PARCL_ID
+        UNIQUE (PARCL_ID)
+);
+
+
+MERGE INTO RES_HOUSING.GOLD.DIM_MARKET AS target
+
+USING (
+
+    SELECT
+        PARCL_ID,
+        NAME AS MARKET_NAME,
+        LOCATION_TYPE
+    FROM RES_HOUSING.BRONZE.RAW_MARKETS
+    WHERE PARCL_ID IS NOT NULL
+      AND NAME IS NOT NULL
+      AND LOCATION_TYPE = 'CBSA'
+
+) AS source
+
+ON target.PARCL_ID = source.PARCL_ID
+
+WHEN MATCHED THEN
+    UPDATE SET
+        MARKET_NAME = source.MARKET_NAME,
+        LOCATION_TYPE = source.LOCATION_TYPE
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        MARKET_KEY,
+        PARCL_ID,
+        MARKET_NAME,
+        LOCATION_TYPE
+    )
+    VALUES (
+        (
+            SELECT COALESCE(MAX(MARKET_KEY), 0) + 1
+            FROM RES_HOUSING.GOLD.DIM_MARKET
+        ),
+        source.PARCL_ID,
+        source.MARKET_NAME,
+        source.LOCATION_TYPE
+    );
+
+
+-- ============================================================
+-- DIM_PORTFOLIO
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS RES_HOUSING.GOLD.DIM_PORTFOLIO (
+    PORTFOLIO_KEY INTEGER NOT NULL,
+    PORTFOLIO_SIZE VARCHAR NOT NULL,
+    DESCRIPTION VARCHAR NOT NULL,
+
+    CONSTRAINT PK_DIM_PORTFOLIO
+        PRIMARY KEY (PORTFOLIO_KEY),
+
+    CONSTRAINT UK_DIM_PORTFOLIO_SIZE
+        UNIQUE (PORTFOLIO_SIZE)
+);
+
+
+MERGE INTO RES_HOUSING.GOLD.DIM_PORTFOLIO AS target
+
+USING (
+
+    SELECT
+        1 AS PORTFOLIO_KEY,
+        'PORTFOLIO_2_TO_9' AS PORTFOLIO_SIZE,
+        '2–9 properties' AS DESCRIPTION
+
+    UNION ALL
+
+    SELECT
+        2,
+        'PORTFOLIO_10_TO_99',
+        '10–99 properties'
+
+    UNION ALL
+
+    SELECT
+        3,
+        'PORTFOLIO_100_TO_999',
+        '100–999 properties'
+
+    UNION ALL
+
+    SELECT
+        4,
+        'PORTFOLIO_1000_PLUS',
+        '1,000+ properties'
+
+) AS source
+
+ON target.PORTFOLIO_SIZE = source.PORTFOLIO_SIZE
+
+WHEN MATCHED THEN
+    UPDATE SET
+        DESCRIPTION = source.DESCRIPTION
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        PORTFOLIO_KEY,
+        PORTFOLIO_SIZE,
+        DESCRIPTION
+    )
+    VALUES (
+        source.PORTFOLIO_KEY,
+        source.PORTFOLIO_SIZE,
+        source.DESCRIPTION
+    );
+
+
+-- ============================================================
+-- FACT_INVESTOR_HOUSING_STOCK
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS RES_HOUSING.GOLD.FACT_INVESTOR_HOUSING_STOCK (
+    DATE_KEY INTEGER NOT NULL,
+    MARKET_KEY INTEGER NOT NULL,
+    PORTFOLIO_KEY INTEGER NOT NULL,
+    INVESTOR_OWNED_PROPERTIES INTEGER,
+    PERCENT_OF_HOUSING_STOCK FLOAT,
+
+    CONSTRAINT PK_FACT_INVESTOR_HOUSING_STOCK
+        PRIMARY KEY (
+            DATE_KEY,
+            MARKET_KEY,
+            PORTFOLIO_KEY
+        )
+);
+
+
+MERGE INTO RES_HOUSING.GOLD.FACT_INVESTOR_HOUSING_STOCK AS target
+
+USING (
+
+    WITH portfolio_unpivot AS (
+
+        SELECT
+            PARCL_ID,
+            DATE,
+            'PORTFOLIO_2_TO_9' AS PORTFOLIO_SIZE,
+            COUNT_PORTFOLIO_2_TO_9 AS INVESTOR_OWNED_PROPERTIES,
+            PCT_SF_HOUSING_STOCK_PORTFOLIO_2_TO_9
+                AS PERCENT_OF_HOUSING_STOCK
+        FROM RES_HOUSING.SILVER.SF_PORTFOLIO_STOCK
+
+        UNION ALL
+
+        SELECT
+            PARCL_ID,
+            DATE,
+            'PORTFOLIO_10_TO_99',
+            COUNT_PORTFOLIO_10_TO_99,
+            PCT_SF_HOUSING_STOCK_PORTFOLIO_10_TO_99
+        FROM RES_HOUSING.SILVER.SF_PORTFOLIO_STOCK
+
+        UNION ALL
+
+        SELECT
+            PARCL_ID,
+            DATE,
+            'PORTFOLIO_100_TO_999',
+            COUNT_PORTFOLIO_100_TO_999,
+            PCT_SF_HOUSING_STOCK_PORTFOLIO_100_TO_999
+        FROM RES_HOUSING.SILVER.SF_PORTFOLIO_STOCK
+
+        UNION ALL
+
+        SELECT
+            PARCL_ID,
+            DATE,
+            'PORTFOLIO_1000_PLUS',
+            COUNT_PORTFOLIO_1000_PLUS,
+            PCT_SF_HOUSING_STOCK_PORTFOLIO_1000_PLUS
+        FROM RES_HOUSING.SILVER.SF_PORTFOLIO_STOCK
+    )
+
+    SELECT
+        d.DATE_KEY,
+        m.MARKET_KEY,
+        p.PORTFOLIO_KEY,
+        u.INVESTOR_OWNED_PROPERTIES,
+        u.PERCENT_OF_HOUSING_STOCK
+
+    FROM portfolio_unpivot u
+
+    JOIN RES_HOUSING.GOLD.DIM_DATE d
+        ON u.DATE = d.DATE
+
+    JOIN RES_HOUSING.GOLD.DIM_MARKET m
+        ON u.PARCL_ID = m.PARCL_ID
+
+    JOIN RES_HOUSING.GOLD.DIM_PORTFOLIO p
+        ON u.PORTFOLIO_SIZE = p.PORTFOLIO_SIZE
+
+) AS source
+
+ON target.DATE_KEY = source.DATE_KEY
+AND target.MARKET_KEY = source.MARKET_KEY
+AND target.PORTFOLIO_KEY = source.PORTFOLIO_KEY
+
+WHEN MATCHED THEN
+    UPDATE SET
+        INVESTOR_OWNED_PROPERTIES = source.INVESTOR_OWNED_PROPERTIES,
+        PERCENT_OF_HOUSING_STOCK = source.PERCENT_OF_HOUSING_STOCK
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        DATE_KEY,
+        MARKET_KEY,
+        PORTFOLIO_KEY,
+        INVESTOR_OWNED_PROPERTIES,
+        PERCENT_OF_HOUSING_STOCK
+    )
+    VALUES (
+        source.DATE_KEY,
+        source.MARKET_KEY,
+        source.PORTFOLIO_KEY,
+        source.INVESTOR_OWNED_PROPERTIES,
+        source.PERCENT_OF_HOUSING_STOCK
+    );
+
+
+-- ============================================================
+-- FACT_INVESTOR_HOUSING_EVENTS
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS RES_HOUSING.GOLD.FACT_INVESTOR_HOUSING_EVENTS (
+    DATE_KEY INTEGER NOT NULL,
+    MARKET_KEY INTEGER NOT NULL,
+    PORTFOLIO_KEY INTEGER NOT NULL,
+    ACQUISITIONS INTEGER,
+    DISPOSITIONS INTEGER,
+    NEW_LISTINGS_FOR_SALE INTEGER,
+    NEW_RENTAL_LISTINGS INTEGER,
+    TRANSFERS INTEGER,
+
+    CONSTRAINT PK_FACT_INVESTOR_HOUSING_EVENTS
+        PRIMARY KEY (
+            DATE_KEY,
+            MARKET_KEY,
+            PORTFOLIO_KEY
+        )
+);
+
+
+MERGE INTO RES_HOUSING.GOLD.FACT_INVESTOR_HOUSING_EVENTS AS target
+
+USING (
+
+    SELECT
+        d.DATE_KEY,
+        m.MARKET_KEY,
+        p.PORTFOLIO_KEY,
+        e.ACQUISITIONS,
+        e.DISPOSITIONS,
+        e.NEW_LISTINGS_FOR_SALE,
+        e.NEW_RENTAL_LISTINGS,
+        e.TRANSFERS
+
+    FROM RES_HOUSING.SILVER.SF_HOUSING_EVENTS e
+
+    JOIN RES_HOUSING.GOLD.DIM_DATE d
+        ON e.DATE = d.DATE
+
+    JOIN RES_HOUSING.GOLD.DIM_MARKET m
+        ON e.PARCL_ID = m.PARCL_ID
+
+    JOIN RES_HOUSING.GOLD.DIM_PORTFOLIO p
+        ON e.PORTFOLIO_SIZE = p.PORTFOLIO_SIZE
+
+) AS source
+
+ON target.DATE_KEY = source.DATE_KEY
+AND target.MARKET_KEY = source.MARKET_KEY
+AND target.PORTFOLIO_KEY = source.PORTFOLIO_KEY
+
+WHEN MATCHED THEN
+    UPDATE SET
+        ACQUISITIONS = source.ACQUISITIONS,
+        DISPOSITIONS = source.DISPOSITIONS,
+        NEW_LISTINGS_FOR_SALE = source.NEW_LISTINGS_FOR_SALE,
+        NEW_RENTAL_LISTINGS = source.NEW_RENTAL_LISTINGS,
+        TRANSFERS = source.TRANSFERS
+
+WHEN NOT MATCHED THEN
+    INSERT (
+        DATE_KEY,
+        MARKET_KEY,
+        PORTFOLIO_KEY,
+        ACQUISITIONS,
+        DISPOSITIONS,
+        NEW_LISTINGS_FOR_SALE,
+        NEW_RENTAL_LISTINGS,
+        TRANSFERS
+    )
+    VALUES (
+        source.DATE_KEY,
+        source.MARKET_KEY,
+        source.PORTFOLIO_KEY,
+        source.ACQUISITIONS,
+        source.DISPOSITIONS,
+        source.NEW_LISTINGS_FOR_SALE,
+        source.NEW_RENTAL_LISTINGS,
+        source.TRANSFERS
+    );

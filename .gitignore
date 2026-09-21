@@ -1,0 +1,10 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
+rh_project_venv/
+data/
+notebooks/
+.env
+__pycache__/
+Notes.txt
+Data_Validation_Checks.sql
+Integrity_Checks_Backup.sql
