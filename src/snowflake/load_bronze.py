@@ -22,11 +22,7 @@ def load_adjustments(df, source):
 
     return df
 
-def load_dataframe(df, table_name):
-
-    passcode = input("Enter Snowflake MFA code: ")
-
-    conn = get_connection(passcode)
+def load_dataframe(df, table_name, conn=None):
 
     success, nchunks, nrows, _ = write_pandas(
         conn=conn,
@@ -36,8 +32,6 @@ def load_dataframe(df, table_name):
         schema="BRONZE",
         overwrite=False
     )
-
-    conn.close()
 
     return success, nrows
 
@@ -67,35 +61,54 @@ def main():
         "parcl_sf_housing_events"
     )
 
-    #Dry Run Exit
-    if DRY_RUN:
-        print("DRY RUN: Parcl ingestion successful.")
-        print(f"SF housing stock rows: {len(total_sf_stock)}")
-        print(f"Portfolio stock rows: {len(portfolio_sf_stock)}")
-        print(f"Housing event rows: {len(sf_housing_event_counts)}")
-        print(f"Market rows: {len(markets_df)}")
-        print("DRY RUN: No data written to Snowflake.")
-        return
+    conn = None
 
-    load_dataframe(
-        markets_df,
-        "RAW_MARKETS"
-    )
+    try:
+        conn = get_connection()
 
-    load_dataframe(
-        total_sf_stock,
-        "RAW_SF_HOUSING_STOCK"
-    )
+        #Dry Run Exit
+        if DRY_RUN:
+            print("DRY RUN: Parcl ingestion successful.")
+            print(f"SF housing stock rows: {len(total_sf_stock)}")
+            print(f"Portfolio stock rows: {len(portfolio_sf_stock)}")
+            print(f"Housing event rows: {len(sf_housing_event_counts)}")
+            print(f"Market rows: {len(markets_df)}")
+            print("DRY RUN: No data written to Snowflake.")
+            return
 
-    load_dataframe(
-        portfolio_sf_stock,
-        "RAW_SF_PORTFOLIO_STOCK"
-    )
-    
-    load_dataframe(
-        sf_housing_event_counts,
-        "RAW_SF_HOUSING_EVENTS"
-    )
+        load_dataframe(
+            markets_df,
+            "RAW_MARKETS",
+            conn
+        )
+
+        load_dataframe(
+            total_sf_stock,
+            "RAW_SF_HOUSING_STOCK",
+            conn
+        )
+
+        load_dataframe(
+            portfolio_sf_stock,
+            "RAW_SF_PORTFOLIO_STOCK",
+            conn
+        )
+        
+        load_dataframe(
+            sf_housing_event_counts,
+            "RAW_SF_HOUSING_EVENTS",
+            conn
+        )
+
+    except Exception as e:
+        print(f"Error connecting to Snowflake: {e}")
+        raise
+    except Exception as e:
+        print(f"Error loading data into Snowflake: {e}")
+        raise
+    finally:
+        if conn:
+            conn.close()
 
     print("Loaded data into Snowflake!")
 
