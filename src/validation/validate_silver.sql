@@ -1,9 +1,4 @@
-WITH latest_batch AS (
-    SELECT MAX(LOAD_TIMESTAMP) AS BATCH_TIMESTAMP
-    FROM RES_HOUSING.BRONZE.RAW_SF_HOUSING_STOCK
-),
-
-housing_stock_checks AS (
+WITH housing_stock_checks AS (
     SELECT
         'Housing stock - quarantine records' AS CHECK_NAME,
         COUNT(*) AS FAILURE_COUNT,
@@ -12,8 +7,10 @@ housing_stock_checks AS (
             ELSE 'FAIL'
         END AS STATUS
     FROM RES_HOUSING.SILVER.QUARANTINE_SF_HOUSING_STOCK q
-    CROSS JOIN latest_batch b
-    WHERE q.LOAD_TIMESTAMP = b.BATCH_TIMESTAMP
+    WHERE q.LOAD_TIMESTAMP = (
+        SELECT MAX(LOAD_TIMESTAMP)
+        FROM RES_HOUSING.BRONZE.RAW_SF_HOUSING_STOCK
+    )
 ),
 
 portfolio_stock_checks AS (

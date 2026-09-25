@@ -5,7 +5,7 @@ import pandas as pd
 
 from snowflake.connector.pandas_tools import write_pandas
 from src.snowflake.connection import get_connection
-#from src.ingestion.parcllabs import ingest_parcllabs_data
+from src.ingestion.parcllabs import ingest_parcllabs_data
 
 load_dotenv()
 
@@ -40,34 +40,29 @@ def load_dataframe(df, table_name):
     return success, nrows
 
 def main():
-    #total_sf_stock, portfolio_sf_stock, sf_housing_event_counts = ingest_parcllabs_data()
-    total_sf_stock = pd.read_csv("data/raw/total_stock_2025-01-01_2025-03-31.csv")
+    total_sf_stock, portfolio_sf_stock, sf_housing_event_counts = ingest_parcllabs_data()
+
+    markets_df = pd.read_csv("config/markets.csv")
+    markets_df = markets_df[['parcl_id', 'name', 'location_type']]
+
+    markets_df = load_adjustments(
+        markets_df,
+        "parcl_markets"
+    )
 
     total_sf_stock = load_adjustments(
         total_sf_stock,
         "parcl_sf_housing_stock"
     )
 
-    portfolio_sf_stock = pd.read_csv("data/raw/portfolio_sf_stock_2025-01-01_2025-03-31.csv")
-
     portfolio_sf_stock = load_adjustments(
         portfolio_sf_stock,
         "parcl_sf_portfolio_stock"
     )
 
-    sf_housing_event_counts = pd.read_csv("data/raw/sf_housing_event_counts_2025-01-01_2025-03-31.csv")
-
     sf_housing_event_counts = load_adjustments(
         sf_housing_event_counts,
         "parcl_sf_housing_events"
-    )
-
-    markets_df = pd.read_csv("data/raw/markets.csv")
-    markets_df = markets_df[['parcl_id', 'name', 'location_type']]
-
-    markets_df = load_adjustments(
-        markets_df,
-        "parcl_markets"
     )
 
     load_dataframe(

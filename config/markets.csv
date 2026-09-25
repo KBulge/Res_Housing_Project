@@ -1,0 +1,6 @@
+parcl_id,country,geoid,state_fips_code,name,state_abbreviation,region,location_type,total_population,median_income,parcl_exchange_market,pricefeed_market,case_shiller_10_market,case_shiller_20_market
+2899750,USA,19740,08,"Denver-Aurora-Lakewood, Co",CO,MOUNTAIN,CBSA,2959386,96920,0,1,1,1
+2900078,USA,31080,06,"Los Angeles-Long Beach-Anaheim, Ca",CA,PACIFIC,CBSA,13111917,89105,0,1,1,1
+2899845,USA,16980,17,"Chicago-Naperville-Elgin, Il-In-Wi",IL,EAST_NORTH_CENTRAL,CBSA,9566955,85087,0,1,1,1
+2887280,USA,12060,13,"Atlanta-Sandy Springs-Alpharetta, Ga",GA,SOUTH_ATLANTIC,CBSA,6094752,82625,0,1,0,1
+2900187,USA,35620,36,"New York-Newark-Jersey City, Ny-Nj-Pa",NY,MIDDLE_ATLANTIC,CBSA,19908595,93610,0,1,1,1

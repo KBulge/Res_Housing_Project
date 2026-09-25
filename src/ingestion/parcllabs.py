@@ -18,10 +18,9 @@ def ingest_parcllabs_data():
     start_date="2025-01-01"
     end_date="2025-03-31"
 
-    market_df = pd.read_csv("data/raw/markets.csv")
+    market_df = pd.read_csv("config/markets.csv")
 
-    market_dict = dict(zip(market_df["name"], market_df["parcl_id"]))
-    market_parcl_ids = list(market_dict.values())
+    market_parcl_ids = market_df["parcl_id"].tolist()
 
     total_sf_stock = client.market_metrics.housing_stock.retrieve(
         parcl_ids=market_parcl_ids,
