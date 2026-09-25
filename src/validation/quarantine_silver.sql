@@ -38,7 +38,7 @@ SELECT
         WHEN SINGLE_FAMILY + CONDO + TOWNHOUSE + OTHER
              <> ALL_PROPERTIES
             THEN 'Property counts do not reconcile'
-    END,
+    END AS FAILURE_REASON,
 
     CURRENT_TIMESTAMP()
 

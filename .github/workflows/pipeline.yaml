@@ -1,0 +1,88 @@
+name: Residential Housing Data Pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  data-pipeline:
+    runs-on: ubuntu-latest
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+
+    steps:
+
+      # --------------------------------------------------------
+      # Checkout repository
+      # --------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # --------------------------------------------------------
+      # Set up Python
+      # --------------------------------------------------------
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      # --------------------------------------------------------
+      # Install dependencies
+      # --------------------------------------------------------
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # --------------------------------------------------------
+      # Ingest Parcl data
+      # --------------------------------------------------------
+      - name: Ingest Parcl data
+        run: python src/ingestion/parcl_ingestion.py
+        env:
+          PARCLLABS_API_KEY: ${{ secrets.PARCLLABS_API_KEY }}
+
+      # --------------------------------------------------------
+      # Load Bronze
+      # --------------------------------------------------------
+      - name: Load Bronze
+        run: python src/snowflake/load_bronze.py
+
+      # --------------------------------------------------------
+      # Quarantine invalid Silver records
+      # --------------------------------------------------------
+      - name: Quarantine Silver records
+        run: python src/snowflake/run_sql.py src/validation/quarantine_silver.sql
+
+      # --------------------------------------------------------
+      # Validate Silver
+      # --------------------------------------------------------
+      - name: Validate Silver
+        run: python src/validation/validate_silver.py
+
+      # --------------------------------------------------------
+      # Load Silver
+      # --------------------------------------------------------
+      - name: Load Silver
+        run: python src/snowflake/run_sql.py src/snowflake/load_silver.sql
+
+      # --------------------------------------------------------
+      # Validate Gold candidate
+      # --------------------------------------------------------
+      - name: Validate Gold candidate
+        run: python src/validation/validate_gold.py
+
+      # --------------------------------------------------------
+      # Build Gold
+      # --------------------------------------------------------
+      - name: Build Gold
+        run: python src/snowflake/run_sql.py src/snowflake/build_gold.sql

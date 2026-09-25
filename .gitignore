@@ -2,6 +2,7 @@
 
 rh_project_venv/
 data/
+tests/
 notebooks/
 .env
 __pycache__/

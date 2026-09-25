@@ -40,11 +40,10 @@ Analytics
 
 ```text
 Res_Housing_Project/
-├── data/
-├── notebooks/
 ├── src/
-├── tests/
+├── config/
 ├── .gitignore
+├── .github/workflows
 ├── requirements.txt
 └── README.md
 ```
