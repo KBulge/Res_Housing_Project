@@ -50,7 +50,8 @@ Res_Housing_Project/
 
 ## Current Status
 
-Initial project architecture and Snowflake Bronze, Silver, and Gold layers are being developed.
+In active development
+Core data ingestion, Snowflake dimensional modeling, validation, and CI/CD infrastructure are implemented. The GitHub Actions pipeline is currently undergoing end-to-end testing and debugging.
 
 ## Future Goals
 

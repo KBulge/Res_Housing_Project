@@ -2,6 +2,12 @@ name: Residential Housing Data Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run mode (true/false)'
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -44,45 +50,45 @@ jobs:
           pip install -r requirements.txt
 
       # --------------------------------------------------------
-      # Ingest Parcl data
+      # Ingest Parcllabs data and load Bronze
       # --------------------------------------------------------
-      - name: Ingest Parcl data
-        run: python src/ingestion/parcl_ingestion.py
-        env:
-          PARCLLABS_API_KEY: ${{ secrets.PARCLLABS_API_KEY }}
-
-      # --------------------------------------------------------
-      # Load Bronze
-      # --------------------------------------------------------
-      - name: Load Bronze
+      - name: Ingest and Load Bronze
         run: python src/snowflake/load_bronze.py
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          PARCLLABS_API_KEY: ${{ secrets.PARCLLABS_API_KEY }}
 
       # --------------------------------------------------------
       # Quarantine invalid Silver records
       # --------------------------------------------------------
       - name: Quarantine Silver records
+        if: ${{ inputs.dry_run == false }}
         run: python src/snowflake/run_sql.py src/validation/quarantine_silver.sql
 
       # --------------------------------------------------------
       # Validate Silver
       # --------------------------------------------------------
       - name: Validate Silver
+        if: ${{ inputs.dry_run == false }}
         run: python src/validation/validate_silver.py
 
       # --------------------------------------------------------
       # Load Silver
       # --------------------------------------------------------
       - name: Load Silver
+        if: ${{ inputs.dry_run == false }}      
         run: python src/snowflake/run_sql.py src/snowflake/load_silver.sql
 
       # --------------------------------------------------------
       # Validate Gold candidate
       # --------------------------------------------------------
       - name: Validate Gold candidate
+        if: ${{ inputs.dry_run == false }}      
         run: python src/validation/validate_gold.py
 
       # --------------------------------------------------------
       # Build Gold
       # --------------------------------------------------------
       - name: Build Gold
+        if: ${{ inputs.dry_run == false }}
         run: python src/snowflake/run_sql.py src/snowflake/build_gold.sql
