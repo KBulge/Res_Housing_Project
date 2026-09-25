@@ -5,9 +5,11 @@ import pandas as pd
 
 from snowflake.connector.pandas_tools import write_pandas
 from src.snowflake.connection import get_connection
-from src.ingestion.parcllabs import ingest_parcllabs_data
+from src.ingestion.parcl_ingestion import ingest_parcllabs_data
 
 load_dotenv()
+
+DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 
 def load_adjustments(df, source):
 
@@ -64,6 +66,16 @@ def main():
         sf_housing_event_counts,
         "parcl_sf_housing_events"
     )
+
+    #Dry Run Exit
+    if DRY_RUN:
+        print("DRY RUN: Parcl ingestion successful.")
+        print(f"SF housing stock rows: {len(total_sf_stock)}")
+        print(f"Portfolio stock rows: {len(portfolio_sf_stock)}")
+        print(f"Housing event rows: {len(sf_housing_event_counts)}")
+        print(f"Market rows: {len(markets_df)}")
+        print("DRY RUN: No data written to Snowflake.")
+        return
 
     load_dataframe(
         markets_df,

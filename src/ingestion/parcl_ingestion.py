@@ -4,16 +4,13 @@ from dotenv import load_dotenv
 import pandas as pd
 from parcllabs import ParclLabsClient
 
-
 load_dotenv()
+
 api_key = os.getenv("PARCLLABS_API_KEY")
 
 client = ParclLabsClient(api_key)
 
 def ingest_parcllabs_data():
-    api_key = os.getenv("PARCLLABS_API_KEY")
-
-    client = ParclLabsClient(api_key)
 
     start_date="2025-01-01"
     end_date="2025-03-31"
