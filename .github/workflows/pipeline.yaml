@@ -53,7 +53,7 @@ jobs:
       # Ingest Parcllabs data and load Bronze
       # --------------------------------------------------------
       - name: Ingest and Load Bronze
-        run: python src/snowflake/load_bronze.py
+        run: python -m src.snowflake.load_bronze
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           PARCLLABS_API_KEY: ${{ secrets.PARCLLABS_API_KEY }}
@@ -63,32 +63,32 @@ jobs:
       # --------------------------------------------------------
       - name: Quarantine Silver records
         if: ${{ inputs.dry_run == false }}
-        run: python src/snowflake/run_sql.py src/validation/quarantine_silver.sql
+        run: python -m src.snowflake.run_sql src/validation/quarantine_silver.sql
 
       # --------------------------------------------------------
       # Validate Silver
       # --------------------------------------------------------
       - name: Validate Silver
         if: ${{ inputs.dry_run == false }}
-        run: python src/validation/validate_silver.py
+        run: python -m src.validation.validate_silver
 
       # --------------------------------------------------------
       # Load Silver
       # --------------------------------------------------------
       - name: Load Silver
         if: ${{ inputs.dry_run == false }}      
-        run: python src/snowflake/run_sql.py src/snowflake/load_silver.sql
+        run: python -m src.snowflake.run_sql src/snowflake/load_silver.sql
 
       # --------------------------------------------------------
       # Validate Gold candidate
       # --------------------------------------------------------
       - name: Validate Gold candidate
         if: ${{ inputs.dry_run == false }}      
-        run: python src/validation/validate_gold.py
+        run: python -m src.validation.validate_gold
 
       # --------------------------------------------------------
       # Build Gold
       # --------------------------------------------------------
       - name: Build Gold
         if: ${{ inputs.dry_run == false }}
-        run: python src/snowflake/run_sql.py src/snowflake/build_gold.sql
+        run: python -m src.snowflake.run_sql src/snowflake/build_gold.sql
