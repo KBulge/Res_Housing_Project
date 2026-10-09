@@ -4,6 +4,7 @@ rh_project_venv/
 data/
 tests/
 notebooks/
+src/validation/quarantine_silver.sql
 .env
 __pycache__/
 Notes.txt

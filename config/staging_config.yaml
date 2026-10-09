@@ -1,0 +1,73 @@
+silver:
+  housing_stock:
+    upstream:
+      schema: BRONZE
+      table: RAW_SF_HOUSING_STOCK
+    staging:
+      schema: SILVER
+      table: STAGING_SF_HOUSING_STOCK
+    downstream:
+      schema: SILVER
+      table: SF_HOUSING_STOCK
+    date_column: DATE
+
+  portfolio_stock:
+    upstream:
+      schema: BRONZE
+      table: RAW_SF_PORTFOLIO_STOCK
+    staging:
+      schema: SILVER
+      table: STAGING_SF_PORTFOLIO_STOCK
+    downstream:
+      schema: SILVER
+      table: SF_PORTFOLIO_STOCK
+    date_column: DATE
+
+  housing_events:
+    upstream:
+      schema: BRONZE
+      table: RAW_SF_HOUSING_EVENTS
+    staging:
+      schema: SILVER
+      table: STAGING_SF_HOUSING_EVENTS
+    downstream:
+      schema: SILVER
+      table: SF_HOUSING_EVENTS
+    date_column: DATE
+    
+gold:
+  housing_stock:
+    upstream:
+      schema: SILVER
+      table: SF_HOUSING_STOCK
+    staging:
+      schema: GOLD
+      table: STAGING_SF_HOUSING_STOCK
+    downstream:
+      schema: GOLD
+      table: GOLD_DATE
+    date_column: DATE
+
+  portfolio_stock:
+    upstream:
+      schema: SILVER
+      table: SF_PORTFOLIO_STOCK
+    staging:
+      schema: GOLD
+      table: STAGING_SF_PORTFOLIO_STOCK
+    downstream:
+      schema: GOLD
+      table: GOLD_DATE
+    date_column: DATE
+
+  housing_events:
+    upstream:
+      schema: SILVER
+      table: SF_HOUSING_EVENTS
+    staging:
+      schema: GOLD
+      table: STAGING_SF_HOUSING_EVENTS
+    downstream:
+      schema: GOLD
+      table: GOLD_DATE
+    date_column: DATE
