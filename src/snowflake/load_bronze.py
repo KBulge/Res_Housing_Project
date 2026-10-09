@@ -30,7 +30,7 @@ def load_dataframe(df, table_name, conn=None):
         table_name=table_name,
         database="RES_HOUSING",
         schema="BRONZE",
-        overwrite=False
+        overwrite=True
     )
 
     return success, nrows
@@ -78,25 +78,25 @@ def main():
 
         load_dataframe(
             markets_df,
-            "RAW_MARKETS",
+            "STAGING_RAW_MARKETS",
             conn
         )
 
         load_dataframe(
             total_sf_stock,
-            "RAW_SF_HOUSING_STOCK",
+            "STAGING_RAW_SF_HOUSING_STOCK",
             conn
         )
 
         load_dataframe(
             portfolio_sf_stock,
-            "RAW_SF_PORTFOLIO_STOCK",
+            "STAGING_RAW_SF_PORTFOLIO_STOCK",
             conn
         )
         
         load_dataframe(
             sf_housing_event_counts,
-            "RAW_SF_HOUSING_EVENTS",
+            "STAGING_RAW_SF_HOUSING_EVENTS",
             conn
         )
 

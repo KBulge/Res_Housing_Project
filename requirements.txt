@@ -1,5 +1,6 @@
 pandas
 python-dotenv
+pyyaml
 snowflake-connector-python
 cryptography
 parcllabs

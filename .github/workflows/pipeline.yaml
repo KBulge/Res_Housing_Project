@@ -50,45 +50,59 @@ jobs:
           pip install -r requirements.txt
 
       # --------------------------------------------------------
-      # Ingest Parcllabs data and load Bronze
+      # Ingest Parcllabs Data and Load Bronze Staging
       # --------------------------------------------------------
       - name: Ingest and Load Bronze
-        run: python -m src.snowflake.load_bronze
+        run: python src/snowflake/load_bronze.py
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           PARCLLABS_API_KEY: ${{ secrets.PARCLLABS_API_KEY }}
 
       # --------------------------------------------------------
-      # Quarantine invalid Silver records
+      # Load Bronze
       # --------------------------------------------------------
-      - name: Quarantine Silver records
+      - name: Load Bronze
+        if: ${{ inputs.dry_run == false }}      
+        run: python src/snowflake/run_sql.py src/snowflake/load_bronze.sql
+
+      # --------------------------------------------------------
+      # Load Silver Staging
+      # --------------------------------------------------------
+      - name: Load Silver Staging
         if: ${{ inputs.dry_run == false }}
-        run: python -m src.snowflake.run_sql src/validation/quarantine_silver.sql
+        run: src/snowflake/load_staging.py --layer silver
 
       # --------------------------------------------------------
       # Validate Silver
       # --------------------------------------------------------
       - name: Validate Silver
         if: ${{ inputs.dry_run == false }}
-        run: python -m src.validation.validate_silver
+        run: python src/validation/validate_silver.py
 
       # --------------------------------------------------------
       # Load Silver
       # --------------------------------------------------------
       - name: Load Silver
         if: ${{ inputs.dry_run == false }}      
-        run: python -m src.snowflake.run_sql src/snowflake/load_silver.sql
+        run: python src/snowflake/run_sql.py src/snowflake/load_silver.sql
 
       # --------------------------------------------------------
-      # Validate Gold candidate
+      # Load Gold Staging
       # --------------------------------------------------------
-      - name: Validate Gold candidate
+      - name: Load Gold Staging
+        if: ${{ inputs.dry_run == false }}
+        run: src/snowflake/load_staging.py --layer gold
+
+      # --------------------------------------------------------
+      # Validate Gold
+      # --------------------------------------------------------
+      - name: Validate Gold
         if: ${{ inputs.dry_run == false }}      
-        run: python -m src.validation.validate_gold
+        run: python src/validation/validate_gold.py
 
       # --------------------------------------------------------
       # Build Gold
       # --------------------------------------------------------
-      - name: Build Gold
+      - name: Load Gold
         if: ${{ inputs.dry_run == false }}
-        run: python -m src.snowflake.run_sql src/snowflake/build_gold.sql
+        run: python src/snowflake/run_sql.py src/snowflake/load_gold.sql true
