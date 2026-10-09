@@ -67,6 +67,7 @@ def load_staging(layer_name):
             raise
 
         for table in config.values():
+            print("Processing table: ", table["staging"]["table"])
 
             watermark = get_watermark(
                 table["downstream"]["schema"],
@@ -104,14 +105,17 @@ def load_staging(layer_name):
                     table_name=table["staging"]["table"],
                     database="RES_HOUSING",
                     schema=table["staging"]["schema"],
-                    overwrite=True
+                    overwrite=True,
+                    use_logical_type = True
                 )
 
-                return success, nrows
+                print("Successfully written staging data:\n")
+                print(f"Success: {success}, Chunks: {nchunks}, Rows: {nrows}")
             except sc.errors.ProgrammingError as e:
                 print(f"Error in writing staging data: {e}")
                 raise
 
+            
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
