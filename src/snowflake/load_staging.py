@@ -3,6 +3,7 @@ from yaml import safe_load
 import pandas as pd
 
 import snowflake.connector as sc
+from snowflake.connector.pandas_tools import write_pandas
 from src.snowflake.connection import get_connection
 
 def load_config(layer_name):
@@ -97,7 +98,7 @@ def load_staging(layer_name):
             staging_data = pd.DataFrame(staging_data.fetchall(), columns=[col[0] for col in cursor.description])
             
             try:
-                success, nchunks, nrows, _ = sc.pandas_tools.write_pandas(
+                success, nchunks, nrows, _ = write_pandas(
                     conn=conn,
                     df=staging_data,
                     table_name=table["staging"]["table"],
