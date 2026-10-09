@@ -10,7 +10,7 @@ def load_config(layer_name):
     Opens the staging_config.yaml file and returns the configuration for the specified layer
     """
     try:
-        with open("staging_config.yaml", "r") as file:
+        with open("config/staging_config.yaml", "r") as file:
                 # Use safe_load to parse the YAML data into a Python dict
                 config = safe_load(file)
     except FileNotFoundError:
@@ -65,7 +65,7 @@ def load_staging(layer_name):
             print("Snowflake connection not set")
             raise
 
-        for table in config:
+        for table in config.values():
 
             watermark = get_watermark(
                 table["downstream"]["schema"],
@@ -94,9 +94,9 @@ def load_staging(layer_name):
                 print(f"Error in fetching staging data: {e}")
                 raise
 
+            staging_data = pd.DataFrame(staging_data.fetchall(), columns=[col[0] for col in cursor.description])
+            
             try:
-                staging_data = pd.DataFrame(staging_data.fetchall(), columns=[col[0] for col in cursor.description])
-
                 success, nchunks, nrows, _ = sc.pandas_tools.write_pandas(
                     conn=conn,
                     df=staging_data,
