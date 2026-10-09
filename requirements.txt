@@ -1,6 +1,6 @@
-pandas
+pandas<3.0.0
 python-dotenv
 pyyaml
-snowflake-connector-python
+snowflake-connector-python[pandas]
 cryptography
 parcllabs
