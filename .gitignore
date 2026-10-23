@@ -5,6 +5,7 @@ data/
 tests/
 notebooks/
 src/validation/quarantine_silver.sql
+src/snowflake/load_bronze.py
 .env
 __pycache__/
 Notes.txt

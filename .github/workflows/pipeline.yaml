@@ -53,7 +53,7 @@ jobs:
       # Ingest Parcllabs Data and Load Bronze Staging
       # --------------------------------------------------------
       - name: Ingest and Load Bronze
-        run: python -m src.snowflake.load_bronze
+        run: python -m src.snowflake.load_staging --layer bronze
         env:
           DRY_RUN: ${{ inputs.dry_run }}
           PARCLLABS_API_KEY: ${{ secrets.PARCLLABS_API_KEY }}
