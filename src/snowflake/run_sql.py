@@ -7,6 +7,11 @@ from src.snowflake.connection import get_connection
 
 
 def run_sql(sql_file: str, transactional: bool = False) -> None:
+    """
+    Runs the SQL MERGE statements from staging to prod tables in each layer
+    'transactional' param ensures that rollbacks are performed for atomicity purposes with the dim:fact table conversions in gold
+    bronze and silver layer MERGES do not need to be rolled back as idempotency measures are set in place for them
+    """
     conn = None
     transaction_started = False
 
@@ -14,6 +19,8 @@ def run_sql(sql_file: str, transactional: bool = False) -> None:
         load_dotenv()
 
         sql_path = Path(sql_file)
+
+        print(f"Commencing query: {sql_path}")
 
         if not sql_path.exists():
             raise FileNotFoundError(
@@ -27,12 +34,15 @@ def run_sql(sql_file: str, transactional: bool = False) -> None:
         # Ensure independent statements commit individually
         # in Bronze and Silver.
         if not transactional:
+            print("Non-transactional MERGE to be performed")
             conn.autocommit(True)
 
         with conn.cursor() as cursor:
 
             # Begin one transaction when requested.
             if transactional:
+                print("Gold layer transactional MERGE to be performed")
+
                 cursor.execute("BEGIN TRANSACTION")
                 transaction_started = True
 
@@ -54,6 +64,7 @@ def run_sql(sql_file: str, transactional: bool = False) -> None:
         # Undo all changes made within the Gold transaction.
         if conn is not None and transaction_started:
             try:
+                print(f"Gold layer MERGES did not all succeed; Attempting to rollback...")
                 conn.rollback()
             except Exception as rollback_exc:
                 print(

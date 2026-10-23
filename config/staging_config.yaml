@@ -1,3 +1,32 @@
+bronze:
+  housing_stock:
+    staging:
+      schema: BRONZE
+      table: STAGING_RAW_SF_HOUSING_STOCK
+    downstream:
+      schema: BRONZE
+      table: RAW_SF_HOUSING_STOCK
+    date_column: DATE
+
+  portfolio_stock:
+    staging:
+      schema: BRONZE
+      table: STAGING_RAW_SF_PORTFOLIO_STOCK
+    downstream:
+      schema: BRONZE
+      table: RAW_SF_PORTFOLIO_STOCK
+    date_column: DATE
+
+  housing_events:
+    staging:
+      schema: BRONZE
+      table: STAGING_RAW_SF_HOUSING_EVENTS
+    downstream:
+      schema: BRONZE
+      table: RAW_SF_HOUSING_EVENTS
+    date_column: DATE
+
+
 silver:
   housing_stock:
     upstream:
