@@ -4,13 +4,8 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 import pandas as pd
-from parcllabs import ParclLabsClient
 
 load_dotenv()
-
-api_key = os.getenv("PARCLLABS_API_KEY")
-
-client = ParclLabsClient(api_key)
 
 def bronze_adjustments(df, source):
 
@@ -23,7 +18,7 @@ def bronze_adjustments(df, source):
 
     return df
 
-def ingest_parcllabs_data( table_name: str, start_date: str, end_date: str):
+def ingest_parcllabs_data(client, table_name: str, start_date: str, end_date: str):
     """
     Function will be called for each table in the bronze layer
     Future To Do: Replace markets.csv with check on whether market parcl_ids have changed

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 import snowflake.connector as sc
 from src.snowflake.connection import get_connection
+from parcllabs import ParclLabsClient
 from src.ingestion.parcl_ingestion import ingest_parcllabs_data
 from snowflake.connector.pandas_tools import write_pandas
 
@@ -95,7 +96,15 @@ def load_staging(layer_name):
         #Verification of watermarks being extracted and converted to dict correctly
         print(watermarks)
 
-        #Loops through tables in each layer to set the staging window data and write to staging tables in Snowflake 
+        #ParclLabsClient initialization only needed for bronze
+        parcl_labs_client = None
+
+        if layer_name == "bronze":
+            api_key = os.getenv("PARCLLABS_API_KEY")
+
+            parcl_labs_client = ParclLabsClient(api_key)
+
+        #Loops through tables in each layer to set the staging window data and then write to staging tables in Snowflake 
         for table_name, table_data in config.items():
             print("Processing table: ", table_data["staging"]["table"])
 
@@ -118,6 +127,7 @@ def load_staging(layer_name):
                 #Will pass in table_name, start_date (bronze prod table watermark), end_date (present day) as args
                 print("Calling ingest_parcllabs_data() for table: ", table_data["staging"]["table"])
                 staging_data = ingest_parcllabs_data(
+                    client=parcl_labs_client,
                     table_name=table_name,
                     start_date=table_start_date,
                     end_date=table_end_date
@@ -164,7 +174,6 @@ def load_staging(layer_name):
 
             print(f"Staging data for {table_data['staging']['table']} fetched successfully. Number of rows: {len(staging_data)}")
 
-            #Simple stop on the run to test API ingestion ONLY
             if DRY_RUN == False:
                 #Writes the staging data to the Snowflake staging table
                 try:
@@ -190,6 +199,7 @@ def load_staging(layer_name):
                     print(f"Interface error in fetching staging data: {e}")
                     raise
             if DRY_RUN == True:
+                #Simple stop on the run to test API ingestion ONLY
                 print(f"DRY RUN: Parcl ingestion successful for {table_name}.")
                 print("DRY RUN: No data written to Snowflake.")
 
